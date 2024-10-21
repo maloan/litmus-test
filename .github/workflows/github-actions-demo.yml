@@ -39,7 +39,11 @@ jobs:
           --output auto > matrix_output.log
 
         # Extract the matrix part from the output and set it as an output
-        echo "matrix=$(jq -c '.matrix' matrix_output.log)" >> $GITHUB_OUTPUT
+        matrix=$(jq -c '.matrix' matrix_output.log)
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+    - name: Debug output
+      run: cat matrix_output.log
 
   use-matrix:
     needs: [build]
