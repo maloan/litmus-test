@@ -30,31 +30,34 @@ jobs:
         
     - name: Generate matrix and spec_matrix from metadata
       run: |
-        # Capture matrix output, ensuring only valid JSON is written to matrix.json
+        # Capture raw output from the command, which contains both matrix and spec_matrix
         bundle exec matrix_from_metadata_v3 \
           --platform-exclude 'RedHat-(7|8|9)' \
           --platform-exclude 'SLES-(12|15)' \
           --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
-          --output github 2> warnings.log | tee raw_matrix.json
+          --output github 2> warnings.log | tee raw_output.txt
     
-        # Filter out any non-JSON content and extract valid JSON into matrix.json
-        cat raw_matrix.json | jq '.' > matrix.json || { echo "Error: Invalid JSON output"; cat warnings.log; exit 1; }
+        # Split the raw output into two separate JSON files: matrix.json and spec_matrix.json
+        awk '/^matrix/{flag=1;next}/^spec_matrix/{flag=0}flag' raw_output.txt > matrix.json
+        awk '/^spec_matrix/{flag=1;next}flag' raw_output.txt > spec_matrix.json
     
-        # Extract spec_matrix if it exists
-        if jq -e '.spec_matrix' matrix.json > /dev/null 2>&1; then
-          echo "Extracting spec_matrix from matrix.json"
-          jq '{spec_matrix: .spec_matrix}' matrix.json > spec_matrix.json
-          jq 'del(.spec_matrix)' matrix.json > temp_matrix.json && mv temp_matrix.json matrix.json
+        # Validate that matrix.json contains valid JSON
+        jq '.' matrix.json > /dev/null || { echo "Error: Invalid matrix.json output"; cat warnings.log; exit 1; }
+    
+        # Validate that spec_matrix.json contains valid JSON, if it exists
+        if [ -s spec_matrix.json ]; then
+          jq '.' spec_matrix.json > /dev/null || { echo "Error: Invalid spec_matrix.json output"; cat warnings.log; exit 1; }
         fi
     
     - name: Debugging Print the contents of matrix.json and spec_matrix.json for inspection
       run: |
         echo "Printing matrix.json content:"
         cat matrix.json
-        if [ -f spec_matrix.json ]; then
+        if [ -s spec_matrix.json ]; then
           echo "Printing spec_matrix.json content:"
           cat spec_matrix.json
         fi
+
         
     - name: Set the matrix output
       id: set-matrix
