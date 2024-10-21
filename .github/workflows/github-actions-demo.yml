@@ -36,7 +36,11 @@ jobs:
     - name: Set the matrix output
       id: set-matrix
       run: |
-        matrix=$(cat matrix.json | jq -r tostring)
+        if [ ! -s matrix.json ]; then
+          echo "Error: matrix.json is empty or does not exist."
+          exit 1
+        fi
+        matrix=$(cat matrix.json | jq tostring)
         echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   validate-matrix:
