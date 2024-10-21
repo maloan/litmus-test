@@ -1,4 +1,4 @@
-name: Generate Test Matrix
+name: Generate and Use Test Matrix
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}  # Declare output for the job
+      matrix: ${{ steps.set-matrix.outputs.matrix }}  # Declare matrix output for the job
     steps:
     - uses: actions/checkout@v3
       with:
@@ -21,7 +21,7 @@ jobs:
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.0'  # Specify the Ruby version you need
+        ruby-version: '3.0'
 
     - name: Install dependencies
       run: |
@@ -29,35 +29,20 @@ jobs:
         bundle install
 
     - name: Generate matrix from metadata
+      id: generate-matrix  # Set ID to use the output later
       run: |
-        # Run the matrix_from_metadata_v3 command and write output to a log file
+        # Generate the matrix and write output to matrix_output.log
         bundle exec matrix_from_metadata_v3 \
           --platform-exclude 'RedHat-(7|8|9)' \
           --platform-exclude 'SLES-(12|15)' \
           --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
           --output auto > matrix_output.log
 
-  validate-matrix:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Validate matrix.json
-      run: |
-        if [ ! -s matrix_output.log ]; then
-          echo "Error: matrix_output.log is empty or does not exist."
-          exit 1
-        fi
-        if ! jq empty matrix_output.log; then
-          echo "Error: matrix_output.log is not valid JSON."
-          exit 1
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Extract the matrix part from the output and set it as an output
+        echo "matrix=$(jq -c '.matrix' matrix_output.log)" >> $GITHUB_OUTPUT
 
   use-matrix:
-    needs: [build, validate-matrix]
+    needs: [build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
