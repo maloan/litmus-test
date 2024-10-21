@@ -28,7 +28,7 @@ jobs:
         gem install bundler
         bundle install
         
-    - name: Generate matrix and capture full output
+    - name: Generate matrix and spec_matrix from metadata
       run: |
         # Run the command and capture both stdout and stderr
         bundle exec matrix_from_metadata_v3 \
@@ -43,57 +43,47 @@ jobs:
         echo "Warnings (if any):"
         cat warnings.log
     
-        # Now extract the JSON content (if any)
-        if [ -s matrix_output.log ]; then
-          cat matrix_output.log | jq '.' > matrix.json || { echo "Error: Invalid JSON in output"; cat warnings.log; exit 1; }
-        else
-          echo "Error: No output generated"
-          cat warnings.log
-          exit 1
-        fi
+        # Split the output: Capture matrix section and spec_matrix section separately
+        awk '/^matrix/{flag=1;next}/^spec_matrix/{flag=0}flag' matrix_output.log > matrix.json
+        awk '/^spec_matrix/{flag=1;next}flag' matrix_output.log > spec_matrix.json
     
-    - name: Debugging
+        # Validate that matrix.json contains valid JSON
+        jq '.' matrix.json > /dev/null || { echo "Error: Invalid matrix.json output"; cat warnings.log; exit 1; }
+    
+        # Validate that spec_matrix.json contains valid JSON
+        jq '.' spec_matrix.json > /dev/null || { echo "Error: Invalid spec_matrix.json output"; cat warnings.log; exit 1; }
+    
+    - name: Debugging: Print the contents of matrix.json and spec_matrix.json for inspection
       run: |
         echo "Printing matrix.json content:"
         cat matrix.json
-        if [ ! -s matrix.json ]; then
-          echo "Error: matrix.json is empty or does not exist."
-          exit 1
-        fi
+        echo "Printing spec_matrix.json content:"
+        cat spec_matrix.json
     
-        # Validate JSON structure
-        if ! jq empty matrix.json; then
-          echo "Error: matrix.json contains invalid JSON."
-          exit 1
-        fi
     
-        # Properly convert JSON to string using jq
-        matrix=$(jq -c . matrix.json)
-        echo "matrix=$matrix" >> $GITHUB_OUTPUT
-
-        
-    - name: Set the matrix output
-      id: set-matrix
-      run: |
-        # Debugging: Print the contents of matrix.json for inspection
-        echo "Printing matrix.json content:"
-        cat matrix.json
-        
-        # Check if the file exists and is not empty
-        if [ ! -s matrix.json ]; then
-          echo "Error: matrix.json is empty or does not exist."
-          exit 1
-        fi
-        
-        # Validate JSON structure
-        if ! jq empty matrix.json; then
-          echo "Error: matrix.json contains invalid JSON."
-          exit 1
-        fi
-        
-        # Properly convert JSON to string using jq
-        matrix=$(jq -c . matrix.json)
-        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+            
+        - name: Set the matrix output
+          id: set-matrix
+          run: |
+            # Debugging: Print the contents of matrix.json for inspection
+            echo "Printing matrix.json content:"
+            cat matrix.json
+            
+            # Check if the file exists and is not empty
+            if [ ! -s matrix.json ]; then
+              echo "Error: matrix.json is empty or does not exist."
+              exit 1
+            fi
+            
+            # Validate JSON structure
+            if ! jq empty matrix.json; then
+              echo "Error: matrix.json contains invalid JSON."
+              exit 1
+            fi
+            
+            # Properly convert JSON to string using jq
+            matrix=$(jq -c . matrix.json)
+            echo "matrix=$matrix" >> $GITHUB_OUTPUT
     
   validate-matrix:
     needs: build
