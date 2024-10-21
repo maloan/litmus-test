@@ -28,35 +28,48 @@ jobs:
         gem install bundler
         bundle install
         
-    - name: Generate matrix and spec_matrix from metadata
+    - name: Generate matrix and capture full output
       run: |
-        # Capture raw output from the command, which contains both matrix and spec_matrix
+        # Run the command and capture both stdout and stderr
         bundle exec matrix_from_metadata_v3 \
           --platform-exclude 'RedHat-(7|8|9)' \
           --platform-exclude 'SLES-(12|15)' \
           --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
-          --output github 2> warnings.log | tee raw_output.txt
+          --output github > matrix_output.log 2> warnings.log || { echo "Error: Command failed"; cat warnings.log; exit 1; }
     
-        # Split the raw output into two separate JSON files: matrix.json and spec_matrix.json
-        awk '/^matrix/{flag=1;next}/^spec_matrix/{flag=0}flag' raw_output.txt > matrix.json
-        awk '/^spec_matrix/{flag=1;next}flag' raw_output.txt > spec_matrix.json
+        # Debug: Print the full output and any warnings
+        echo "Matrix command output:"
+        cat matrix_output.log
+        echo "Warnings (if any):"
+        cat warnings.log
     
-        # Validate that matrix.json contains valid JSON
-        jq '.' matrix.json > /dev/null || { echo "Error: Invalid matrix.json output"; cat warnings.log; exit 1; }
-    
-        # Validate that spec_matrix.json contains valid JSON, if it exists
-        if [ -s spec_matrix.json ]; then
-          jq '.' spec_matrix.json > /dev/null || { echo "Error: Invalid spec_matrix.json output"; cat warnings.log; exit 1; }
+        # Now extract the JSON content (if any)
+        if [ -s matrix_output.log ]; then
+          cat matrix_output.log | jq '.' > matrix.json || { echo "Error: Invalid JSON in output"; cat warnings.log; exit 1; }
+        else
+          echo "Error: No output generated"
+          cat warnings.log
+          exit 1
         fi
     
-    - name: Debugging Print the contents of matrix.json and spec_matrix.json for inspection
+    - name: Debugging: Print the contents of matrix.json for inspection
       run: |
         echo "Printing matrix.json content:"
         cat matrix.json
-        if [ -s spec_matrix.json ]; then
-          echo "Printing spec_matrix.json content:"
-          cat spec_matrix.json
+        if [ ! -s matrix.json ]; then
+          echo "Error: matrix.json is empty or does not exist."
+          exit 1
         fi
+    
+        # Validate JSON structure
+        if ! jq empty matrix.json; then
+          echo "Error: matrix.json contains invalid JSON."
+          exit 1
+        fi
+    
+        # Properly convert JSON to string using jq
+        matrix=$(jq -c . matrix.json)
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
         
     - name: Set the matrix output
