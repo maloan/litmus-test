@@ -35,8 +35,7 @@ jobs:
 
     - name: Set the matrix output
       id: set-matrix
-      run: echo "::set-output name=matrix::$(cat matrix.json)"
-
+      run: echo "{matrix}={matrix.json}" >> $GITHUB_OUTPUT
   use-matrix:
     needs: build
     runs-on: ubuntu-latest
