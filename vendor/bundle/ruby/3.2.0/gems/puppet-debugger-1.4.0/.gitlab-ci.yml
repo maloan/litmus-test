@@ -1,0 +1,131 @@
+include:
+  - template: Dependency-Scanning.gitlab-ci.yml
+
+stages:
+  - validate
+  - test
+  - release
+  # - deploy
+  #- web_deploy
+
+.puppet_job_def_ruby27: &puppet_job_def_ruby27
+  stage: test
+  script:
+    - rm -f Gemfile.lock
+    - gem install bundler -v 2.4.22 > /dev/null
+    - bundle install --without development validate
+    - bundle exec puppet module install puppetlabs-stdlib --version 8.6.0
+    - bundle exec rspec
+  tags:
+    - ruby
+
+.puppet_job_def_ruby30plus: &puppet_job_def_ruby30plus
+  stage: test
+  script:
+    - rm -f Gemfile.lock
+    - bundle install --without development validate
+    - puppet module install puppetlabs-stdlib --version 9.4.1 
+    - bundle exec rspec
+  tags:
+    - ruby
+
+# will be replaced by akash tf provider
+# web_trigger_staging:
+#   stage: web_deploy
+#   variables:
+#     REF: staging
+#   only:
+#     - main
+#   script:
+#     - "curl -X POST -F token=$PREPL_BUILD_TRIGGER_TOKEN -F ref=$REF https://gitlab.com/api/v4/projects/1146764/trigger/builds"
+
+rubocop_ruby:
+  stage: validate
+  allow_failure: true
+  only:
+    - branches
+  tags:
+    - ruby
+  script:
+    - rm -f Gemfile.lock
+    - bundle install
+    - bundle exec rubocop -D
+
+bump_and_tag:
+  stage: release
+  when: manual
+  tags:
+    - ruby2.7
+  only:
+    - main@puppet-debugger/puppet-debugger
+  script:
+    - gem install release_me
+    - bump_and_tag
+
+#web_trigger_production:
+#  type: web_deploy
+#  variables:
+#    REF: production
+#  only:
+#    - tags
+#  tags:
+#    - ruby
+#  script:
+#    - "curl -X POST -F token=$PREPL_BUILD_TRIGGER_TOKEN -F ref=$REF https://gitlab.com/api/v3/projects/1146764/trigger/builds"
+
+.ruby_27: &ruby27
+  image: ruby:2.7
+
+.ruby_31: &ruby31
+  image: ruby:3.1
+
+.ruby_32: &ruby32
+  image: ruby:3.2
+
+.ruby_33: &ruby33
+  image: ruby:3.3
+
+.ruby_34: &ruby34
+  image: ruby:3.4
+
+# gem_production:
+#   image: ruby:2.7
+#   tags:
+#     - ruby
+#   before_script:
+#     - gem install dpl
+#   stage: deploy
+#   script:
+#     - dpl --provider=rubygems --api-key=$RUBYGEMS_API_KEY
+#   only:
+#     - tags
+
+puppet_6_ruby27:
+  allow_failure: false
+  variables:
+    PUPPET_GEM_VERSION: "~> 6.0"
+  <<: *puppet_job_def_ruby27
+  <<: *ruby27
+
+puppet_7_ruby27:
+  allow_failure: false
+  variables:
+    PUPPET_GEM_VERSION: "~> 7.0"
+  <<: *puppet_job_def_ruby27
+  <<: *ruby27
+
+puppet_8_ruby3.2:
+  allow_failure: true
+  variables:
+    PUPPET_GEM_VERSION: "~> 8.0"
+  <<: *puppet_job_def_ruby30plus
+  <<: *ruby32
+
+puppet_8_ruby3.4:
+  allow_failure: true
+  variables:
+    PUPPET_GEM_VERSION: "~> 8.2"
+  <<: *puppet_job_def_ruby30plus
+  <<: *ruby32
+
+

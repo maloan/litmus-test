@@ -1,0 +1,18 @@
+current directory: /home/kurth/puppetlabs-motd/vendor/bundle/ruby/3.2.0/gems/nkf-0.2.0/ext/nkf
+/usr/bin/ruby3.2 -I/usr/lib/ruby/vendor_ruby extconf.rb
+creating Makefile
+
+current directory: /home/kurth/puppetlabs-motd/vendor/bundle/ruby/3.2.0/gems/nkf-0.2.0/ext/nkf
+make DESTDIR\= sitearchdir\=./.gem.20241021-7514-65do3g sitelibdir\=./.gem.20241021-7514-65do3g clean
+
+current directory: /home/kurth/puppetlabs-motd/vendor/bundle/ruby/3.2.0/gems/nkf-0.2.0/ext/nkf
+make DESTDIR\= sitearchdir\=./.gem.20241021-7514-65do3g sitelibdir\=./.gem.20241021-7514-65do3g
+compiling nkf.c
+linking shared-object nkf.so
+
+current directory: /home/kurth/puppetlabs-motd/vendor/bundle/ruby/3.2.0/gems/nkf-0.2.0/ext/nkf
+make DESTDIR\= sitearchdir\=./.gem.20241021-7514-65do3g sitelibdir\=./.gem.20241021-7514-65do3g install
+/usr/bin/install -c -m 0755 nkf.so ./.gem.20241021-7514-65do3g
+
+current directory: /home/kurth/puppetlabs-motd/vendor/bundle/ruby/3.2.0/gems/nkf-0.2.0/ext/nkf
+make DESTDIR\= sitearchdir\=./.gem.20241021-7514-65do3g sitelibdir\=./.gem.20241021-7514-65do3g clean

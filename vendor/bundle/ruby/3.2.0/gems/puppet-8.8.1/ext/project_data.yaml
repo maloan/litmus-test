@@ -1,0 +1,8 @@
+---
+project: 'puppet'
+gem_rdoc_options:
+  - --title
+  - "Puppet - Configuration Management"
+  - --main
+  - README.md
+  - --line-numbers
