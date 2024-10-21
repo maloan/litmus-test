@@ -30,16 +30,17 @@ jobs:
         run: gem install puppet_litmus
 
       - name: Generate GitHub Action Matrix
+        id: generate_matrix
         run: |
           bundle exec matrix_from_metadata_v3 --output github --runner ubuntu-latest > matrix.json
-          echo "MATRIX=$(cat matrix.json)" >> $GITHUB_ENV
+          echo "::set-output name=matrix::$(cat matrix.json)"
 
   litmus_tests:
     needs: generate_matrix_and_test
     runs-on: ubuntu-latest
     
     strategy:
-      matrix: ${{ fromJson(env.MATRIX) }}
+      matrix: ${{ fromJson(needs.generate_matrix_and_test.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
