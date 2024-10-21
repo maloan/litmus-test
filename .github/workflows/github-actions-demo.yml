@@ -27,67 +27,34 @@ jobs:
       run: |
         gem install bundler
         bundle install
-        
-    - name: Generate matrix and spec_matrix from metadata
+
+    - name: Generate matrix from metadata
       run: |
-        # Run the command and capture both stdout and stderr
+        # Run the matrix_from_metadata_v3 command and write output to a log file
         bundle exec matrix_from_metadata_v3 \
           --platform-exclude 'RedHat-(7|8|9)' \
           --platform-exclude 'SLES-(12|15)' \
           --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
-          --output auto > matrix_output.log 2> warnings.log || { echo "Error: Command failed"; cat warnings.log; exit 1; }
-    
-        # Debug: Print the full output and any warnings
-        echo "Matrix command output:"
-        cat matrix_output.log
-        echo "Warnings (if any):"
-        cat warnings.log
+          --output auto > matrix_output.log 2> warnings.log
 
-        # Check if matrix_output.log contains anything before attempting to split
-        if [ ! -s matrix_output.log ]; then
-          echo "Error: matrix_output.log is empty, matrix_from_metadata_v3 did not generate any output."
-          cat warnings.log
-          exit 1
-        fi
-    
-        # Split the output: Capture matrix section and spec_matrix section separately
-        awk '/^matrix/{flag=1;next}/^spec_matrix/{flag=0}flag' matrix_output.log > matrix.json
-        awk '/^spec_matrix/{flag=1;next}flag' matrix_output.log > spec_matrix.json
-    
-        # Validate that matrix.json contains valid JSON
-        jq '.' matrix.json > /dev/null || { echo "Error: Invalid matrix.json output"; cat warnings.log; exit 1; }
-    
-        # Validate that spec_matrix.json contains valid JSON
-        jq '.' spec_matrix.json > /dev/null || { echo "Error: Invalid spec_matrix.json output"; cat warnings.log; exit 1; }
-    
-    - name: Debugging
-      run: |
-        echo "Printing matrix.json content:"
-        cat matrix.json
-        echo "Printing spec_matrix.json content:"
-        cat spec_matrix.json
-    
     - name: Set the matrix output
       id: set-matrix
       run: |
-        # Debugging: Print the contents of matrix.json for inspection
-        echo "Printing matrix.json content:"
-        cat matrix.json
+        # Print the contents of matrix_output.log for debugging
+        echo "Printing matrix_output.log content:"
+        cat matrix_output.log
         
         # Check if the file exists and is not empty
-        if [ ! -s matrix.json ]; then
-          echo "Error: matrix.json is empty or does not exist."
+        if [ ! -s matrix_output.log ]; then
+          echo "Error: matrix_output.log is empty or does not exist."
           exit 1
         fi
-        
+
         # Validate JSON structure
-        if ! jq empty matrix.json; then
-          echo "Error: matrix.json contains invalid JSON."
-          exit 1
-        fi
+        jq '.' matrix_output.log > /dev/null || { echo "Error: Invalid JSON in matrix_output.log"; exit 1; }
         
-        # Properly convert JSON to string using jq
-        matrix=$(jq -c . matrix.json)
+        # Convert JSON to string and set it as an output
+        matrix=$(cat matrix_output.log | jq -c '.matrix')
         echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   validate-matrix:
@@ -98,12 +65,12 @@ jobs:
 
     - name: Validate matrix.json
       run: |
-        if [ ! -s matrix.json ]; then
-          echo "Error: matrix.json is empty or does not exist."
+        if [ ! -s matrix_output.log ]; then
+          echo "Error: matrix_output.log is empty or does not exist."
           exit 1
         fi
-        if ! jq empty matrix.json; then
-          echo "Error: matrix.json is not valid JSON."
+        if ! jq empty matrix_output.log; then
+          echo "Error: matrix_output.log is not valid JSON."
           exit 1
         fi
       env:
@@ -114,9 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.build.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.build.outputs.matrix) }}  # Use the matrix output from the build job
     steps:
     - uses: actions/checkout@v3
-
     - name: Use Matrix
-      run: echo "Running on ${{ matrix.label }}"
+      run: echo "Running on ${{ matrix.label }} with runner: ${{ matrix.runner }}"
