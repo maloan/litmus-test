@@ -27,15 +27,31 @@ jobs:
       run: |
         gem install bundler
         bundle install
-
-    - name: Generate matrix from metadata
-      run: bundle exec matrix_from_metadata_v3 \
-        --platform-exclude 'RedHat-(7|8|9)' \
-        --platform-exclude 'SLES-(12|15)' \
-        --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
-        --output github > matrix.json
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Generate matrix and spec_matrix from metadata
+      run: |
+        # Capture matrix output and write it to matrix.json
+        bundle exec matrix_from_metadata_v3 \
+          --platform-exclude 'RedHat-(7|8|9)' \
+          --platform-exclude 'SLES-(12|15)' \
+          --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
+          --output github > matrix.json
+    
+        # Extract spec_matrix separately if needed
+        if grep -q "spec_matrix" matrix.json; then
+          echo "Extracting spec_matrix from matrix.json"
+          jq '{spec_matrix: .spec_matrix}' matrix.json > spec_matrix.json
+          jq 'del(.spec_matrix)' matrix.json > temp_matrix.json && mv temp_matrix.json matrix.json
+        fi
+    
+    - name: Debugging
+      run: |
+        echo "Printing matrix.json content:"
+        cat matrix.json
+        if [ -f spec_matrix.json ]; then
+          echo "Printing spec_matrix.json content:"
+          cat spec_matrix.json
+        fi
     
     - name: Set the matrix output
       id: set-matrix
