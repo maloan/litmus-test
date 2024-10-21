@@ -9,31 +9,40 @@ on:
       - main
 
 jobs:
-  generate-matrix:
+  build:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}  # Declare output for the job
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.0'
+        ruby-version: '3.0'  # Specify the Ruby version you need
+
+    - name: Install dependencies
+      run: |
+        gem install bundler
+        bundle install
 
     - name: Generate matrix from metadata
-      run: |
-        ruby matrix_from_metadata_v3 > matrix.json
+      run: bundle exec matrix_from_metadata_v3 --output github > matrix.json
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Set the matrix output
       id: set-matrix
       run: echo "::set-output name=matrix::$(cat matrix.json)"
 
   use-matrix:
-    needs: generate-matrix
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.generate-matrix.outputs.matrix)}}
+      matrix: ${{fromJson(needs.build.outputs.matrix)}}
     steps:
     - uses: actions/checkout@v3
 
