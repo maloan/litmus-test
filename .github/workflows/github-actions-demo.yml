@@ -52,7 +52,7 @@ jobs:
           exit 1
         fi
     
-    - name: Debugging: Print the contents of matrix.json for inspection
+    - name: Debugging
       run: |
         echo "Printing matrix.json content:"
         cat matrix.json
