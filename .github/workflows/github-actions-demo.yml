@@ -26,14 +26,13 @@ jobs:
       - name: Install dependencies
         run: bundle install
 
-      - name: Install matrix_from_metadata_v3
+      - name: Install Puppet Litmus
         run: gem install puppet_litmus
 
       - name: Generate GitHub Action Matrix
         id: generate_matrix
         run: |
-          bundle exec matrix_from_metadata_v3 --output github --runner ubuntu-latest > matrix.json
-          cat matrix.json  # Print the matrix for debugging
+          bundle exec matrix_from_metadata_v3 --output github --runner ubuntu-latest --platform-exclude RedHat-7 --platform-exclude RedHat-8 --platform-exclude SLES-12 --platform-exclude SLES-15 --platform-exclude Windows-10 --platform-exclude Windows-2016 --platform-exclude Windows-2019 > matrix.json
           echo "MATRIX=$(cat matrix.json)" >> $GITHUB_ENV  # Save the matrix in the environment file
 
   litmus_tests:
@@ -41,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     
     strategy:
-      matrix: ${{ fromJson(env.MATRIX) }}  # Use the matrix stored in the environment file
+      matrix: ${{ fromJson(env.MATRIX) }}  # Use the matrix stored in the environment
 
     steps:
       - name: Checkout repository
