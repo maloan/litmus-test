@@ -42,6 +42,13 @@ jobs:
         cat matrix_output.log
         echo "Warnings (if any):"
         cat warnings.log
+
+        # Check if matrix_output.log contains anything before attempting to split
+        if [ ! -s matrix_output.log ]; then
+          echo "Error: matrix_output.log is empty, matrix_from_metadata_v3 did not generate any output."
+          cat warnings.log
+          exit 1
+        fi
     
         # Split the output: Capture matrix section and spec_matrix section separately
         awk '/^matrix/{flag=1;next}/^spec_matrix/{flag=0}flag' matrix_output.log > matrix.json
