@@ -60,31 +60,29 @@ jobs:
         echo "Printing spec_matrix.json content:"
         cat spec_matrix.json
     
-    
-            
-        - name: Set the matrix output
-          id: set-matrix
-          run: |
-            # Debugging: Print the contents of matrix.json for inspection
-            echo "Printing matrix.json content:"
-            cat matrix.json
-            
-            # Check if the file exists and is not empty
-            if [ ! -s matrix.json ]; then
-              echo "Error: matrix.json is empty or does not exist."
-              exit 1
-            fi
-            
-            # Validate JSON structure
-            if ! jq empty matrix.json; then
-              echo "Error: matrix.json contains invalid JSON."
-              exit 1
-            fi
-            
-            # Properly convert JSON to string using jq
-            matrix=$(jq -c . matrix.json)
-            echo "matrix=$matrix" >> $GITHUB_OUTPUT
-    
+    - name: Set the matrix output
+      id: set-matrix
+      run: |
+        # Debugging: Print the contents of matrix.json for inspection
+        echo "Printing matrix.json content:"
+        cat matrix.json
+        
+        # Check if the file exists and is not empty
+        if [ ! -s matrix.json ]; then
+          echo "Error: matrix.json is empty or does not exist."
+          exit 1
+        fi
+        
+        # Validate JSON structure
+        if ! jq empty matrix.json; then
+          echo "Error: matrix.json contains invalid JSON."
+          exit 1
+        fi
+        
+        # Properly convert JSON to string using jq
+        matrix=$(jq -c . matrix.json)
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   validate-matrix:
     needs: build
     runs-on: ubuntu-latest
