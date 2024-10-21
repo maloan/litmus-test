@@ -33,9 +33,3 @@ jobs:
 
     - name: Print matrix results
       run: cat matrix.json  # Adjust based on how your script outputs results
-
-    - name: Upload Matrix as Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: matrix-results
-        path: matrix.json
