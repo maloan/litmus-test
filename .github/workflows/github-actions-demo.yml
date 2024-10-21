@@ -85,4 +85,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Use Matrix
-      run: echo "Running on ${{ matrix.label }} with runner: ${{ matrix.runner }}"
+      run: echo "Running on ${{ matrix.label }}
