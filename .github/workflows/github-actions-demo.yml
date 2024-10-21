@@ -39,8 +39,27 @@ jobs:
         matrix=$(cat matrix.json | jq -r tostring)
         echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-  use-matrix:
+  validate-matrix:
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Validate matrix.json
+      run: |
+        if [ ! -s matrix.json ]; then
+          echo "Error: matrix.json is empty or does not exist."
+          exit 1
+        fi
+        if ! jq empty matrix.json; then
+          echo "Error: matrix.json is not valid JSON."
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  use-matrix:
+    needs: [build, validate-matrix]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
