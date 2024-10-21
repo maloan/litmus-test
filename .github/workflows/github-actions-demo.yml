@@ -33,14 +33,14 @@ jobs:
         id: generate_matrix
         run: |
           bundle exec matrix_from_metadata_v3 --output github --runner ubuntu-latest > matrix.json
-          echo "::set-output name=matrix::$(cat matrix.json)"
+          echo "MATRIX=$(cat matrix.json)" >> $GITHUB_ENV  # Save matrix to environment file for passing to the next job
 
   litmus_tests:
     needs: generate_matrix_and_test
     runs-on: ubuntu-latest
     
     strategy:
-      matrix: ${{ fromJson(needs.generate_matrix_and_test.outputs.matrix) }}
+      matrix: ${{ fromJson(env.MATRIX) }}  # Use the matrix stored in the environment
 
     steps:
       - name: Checkout repository
