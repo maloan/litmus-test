@@ -35,7 +35,7 @@ jobs:
           --platform-exclude 'RedHat-(7|8|9)' \
           --platform-exclude 'SLES-(12|15)' \
           --platform-exclude 'Windows-(10|2012 R2|2016|2019)' \
-          --output github > matrix_output.log 2> warnings.log || { echo "Error: Command failed"; cat warnings.log; exit 1; }
+          --output auto > matrix_output.log 2> warnings.log || { echo "Error: Command failed"; cat warnings.log; exit 1; }
     
         # Debug: Print the full output and any warnings
         echo "Matrix command output:"
