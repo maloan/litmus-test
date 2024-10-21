@@ -35,13 +35,16 @@ jobs:
 
     - name: Set the matrix output
       id: set-matrix
-      run: echo "{matrix}={matrix.json}" >> $GITHUB_OUTPUT
+      run: |
+        matrix=$(cat matrix.json | jq -r tostring)
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   use-matrix:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.build.outputs.matrix)}}
+      matrix: ${{ fromJson(needs.build.outputs.matrix) }}
     steps:
     - uses: actions/checkout@v3
 
