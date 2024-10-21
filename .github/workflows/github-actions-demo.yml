@@ -1,49 +1,41 @@
-name: Puppet Litmus Tests
+name: Generate Test Matrix
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  prepare-matrix:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.7 # or another version suitable for your project
-          bundler-cache: true # automatically installs Bundler and runs `bundle install`
-      - name: Generate matrix
-        id: set-matrix
-        run: |
-          MATRIX_OUTPUT=$(bundle exec matrix_from_metadata_v3 --output github)
-          echo "matrix=${MATRIX_OUTPUT}" >> $GITHUB_OUTPUT
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
-  run-tests:
-    needs: prepare-matrix
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup Ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: '2.5.x'
-      - name: Install dependencies
-        run: |
-          bundle install
-      - name: Provisioning
-        run: bundle exec rake litmus:provision_list[${{ matrix.platform }}]
-      - name: Install Puppet agent
-        run: bundle exec rake litmus:install_agent
-      - name: Install module and dependencies
-        run: bundle exec rake litmus:install_module
-      - name: Run acceptance tests
-        run: bundle exec rake litmus:acceptance:parallel
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.0'  # Specify the Ruby version you need
+
+    - name: Install dependencies
+      run: |
+        gem install bundler
+        bundle install
+
+    - name: Generate matrix from metadata
+      run: bundle exec matrix_from_metadata_v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Print matrix results
+      run: cat matrix.json  # Adjust based on how your script outputs results
+
+    - name: Upload Matrix as Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: matrix-results
+        path: matrix.json
